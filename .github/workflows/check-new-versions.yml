@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history to read existing tags
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -64,13 +66,12 @@ jobs:
           done
           echo "Versions with MCP: $MCP_VERSIONS"
 
-          # Check which tags already exist on Docker Hub
-          EXISTING_TAGS=$(curl -sf "https://hub.docker.com/v2/repositories/${DOCKERHUB_REPO}/tags/?page_size=100" \
-            | jq -r '.results[].name // empty' 2>/dev/null || echo "")
+          # Check which versions we've already tagged in our repo (v* tags)
+          OUR_TAGS=$(git tag -l 'v*' | sed 's/^v//')
 
           NEW_VERSIONS=""
           for ver in $MCP_VERSIONS; do
-            if ! echo "$EXISTING_TAGS" | grep -qx "$ver"; then
+            if ! echo "$OUR_TAGS" | grep -qx "$ver"; then
               NEW_VERSIONS="$NEW_VERSIONS $ver"
             fi
           done
@@ -86,7 +87,7 @@ jobs:
           echo "New versions to build: ${NEW_TRIMMED:-none}"
           echo "Latest stable: $LATEST"
 
-      - name: Build and push new versions
+      - name: Tag, build, and push new versions
         if: steps.discover.outputs.has_new == 'true'
         run: |
           set -euo pipefail
@@ -96,6 +97,10 @@ jobs:
             echo "=========================================="
             echo "Building Penpot $VERSION"
             echo "=========================================="
+
+            # Create git tag on our repo
+            git tag "v${VERSION}" -m "Penpot ${VERSION}"
+            echo "Created tag v${VERSION}"
 
             MAJOR=$(echo "$VERSION" | cut -d. -f1)
             MINOR=$(echo "$VERSION" | cut -d. -f1-2)
@@ -118,6 +123,9 @@ jobs:
               .
           done
 
+          # Push all new tags to our repo
+          git push origin --tags
+
       - name: Rebuild develop (nightly)
         run: |
           docker buildx build \
@@ -134,7 +142,7 @@ jobs:
           echo "### Nightly Version Check" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ steps.discover.outputs.has_new }}" = "true" ]; then
-            echo "**New versions built:** ${{ steps.discover.outputs.new_versions }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "**New versions tagged and built:** ${{ steps.discover.outputs.new_versions }}" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No new Penpot versions found." >> "$GITHUB_STEP_SUMMARY"
           fi
