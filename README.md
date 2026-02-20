@@ -16,6 +16,40 @@ The Penpot MCP server exposes [Model Context Protocol](https://modelcontextproto
 
 The server communicates with the Penpot desktop/web app via a WebSocket bridge (the Penpot MCP plugin must be installed in Penpot).
 
+## How It Works
+
+```mermaid
+graph LR
+    subgraph Your Machine
+        AI["AI Assistant\n(Claude, Cursor, etc.)"]
+
+        subgraph Docker
+            MCP["Penpot MCP Server\n:4401 HTTP · :4402 WS · :4403 REPL"]
+        end
+
+        subgraph Browser
+            Penpot["Penpot App\n+ MCP Plugin"]
+        end
+    end
+
+    AI -- "MCP Protocol\nHTTP :4401" --> MCP
+    MCP -- "Task Bridge\nWebSocket :4402" --> Penpot
+    Penpot -- "Results" --> MCP
+    MCP -- "Tool Response" --> AI
+
+    style Docker fill:#0d1117,stroke:#58a6ff,stroke-width:2px,color:#c9d1d9
+    style MCP fill:#161b22,stroke:#58a6ff,color:#c9d1d9
+    style AI fill:#1a1046,stroke:#a371f7,stroke-width:2px,color:#c9d1d9
+    style Penpot fill:#0c2d1e,stroke:#3fb950,stroke-width:2px,color:#c9d1d9
+    style Browser fill:#0d1117,stroke:#3fb950,stroke-width:2px,color:#c9d1d9
+```
+
+**Flow:**
+1. You open **Penpot** in your browser with the **MCP Plugin** installed
+2. The plugin connects to the Docker container via **WebSocket** (port 4402)
+3. Your **AI assistant** connects to the container via **HTTP** (port 4401)
+4. When the AI needs to interact with your design, it sends an MCP request → the server forwards it to the plugin → the plugin executes in Penpot and returns the result
+
 ## Ports
 
 | Port | Protocol | Purpose |
