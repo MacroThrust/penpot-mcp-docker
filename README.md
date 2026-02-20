@@ -108,11 +108,16 @@ MULTI_USER=true docker compose up -d
 
 ## MCP Client Configuration
 
-### Option 1: Docker Hub image (easiest)
+> **Note on transport:** Some MCP servers (like Gitea) use **stdio transport**, which lets you
+> inline `"command": "docker"` directly in your MCP config. The Penpot MCP server uses
+> **HTTP transport** instead, so the container needs to be running first and clients connect
+> via URL.
 
-Run the pre-built image and configure your MCP client in one go.
+### Step 1 — Start the server
 
-**Start the server:**
+Pick one of the options below. The server only needs to be started once — it stays running in the background.
+
+**From Docker Hub (easiest):**
 
 ```bash
 docker run -d \
@@ -123,6 +128,17 @@ docker run -d \
   --restart unless-stopped \
   sebathi/penpot-mcp-docker:latest
 ```
+
+**From source (for customization):**
+
+```bash
+git clone https://github.com/sebathi/penpot-mcp-docker.git
+cd penpot-mcp-docker
+cp .env.example .env
+docker compose up -d
+```
+
+### Step 2 — Configure your MCP client
 
 **Claude Desktop** — add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
@@ -136,7 +152,7 @@ docker run -d \
 }
 ```
 
-**Claude Code** — add to `.claude/settings.json` or run:
+**Claude Code:**
 
 ```bash
 claude mcp add penpot --transport http http://localhost:4401/mcp
@@ -153,19 +169,6 @@ claude mcp add penpot --transport http http://localhost:4401/mcp
   }
 }
 ```
-
-### Option 2: Build from source
-
-If you want to build from a specific branch or customize the image:
-
-```bash
-git clone https://github.com/sebathi/penpot-mcp-docker.git
-cd penpot-mcp-docker
-cp .env.example .env
-docker compose up -d
-```
-
-Then configure your MCP client with the same URL: `http://localhost:4401/mcp`
 
 ### Legacy SSE clients
 
