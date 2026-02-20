@@ -108,9 +108,23 @@ MULTI_USER=true docker compose up -d
 
 ## MCP Client Configuration
 
-### Claude Desktop / Claude Code
+### Option 1: Docker Hub image (easiest)
 
-Add to your MCP settings:
+Run the pre-built image and configure your MCP client in one go.
+
+**Start the server:**
+
+```bash
+docker run -d \
+  --name penpot-mcp-server \
+  -p 4401:4401 \
+  -p 4402:4402 \
+  -p 4403:4403 \
+  --restart unless-stopped \
+  sebathi/penpot-mcp-docker:latest
+```
+
+**Claude Desktop** — add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
 ```json
 {
@@ -122,9 +136,40 @@ Add to your MCP settings:
 }
 ```
 
+**Claude Code** — add to `.claude/settings.json` or run:
+
+```bash
+claude mcp add penpot --transport http http://localhost:4401/mcp
+```
+
+**Cursor** — add to `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "penpot": {
+      "url": "http://localhost:4401/mcp"
+    }
+  }
+}
+```
+
+### Option 2: Build from source
+
+If you want to build from a specific branch or customize the image:
+
+```bash
+git clone https://github.com/sebathi/penpot-mcp-docker.git
+cd penpot-mcp-docker
+cp .env.example .env
+docker compose up -d
+```
+
+Then configure your MCP client with the same URL: `http://localhost:4401/mcp`
+
 ### Legacy SSE clients
 
-For clients that don't support Streamable HTTP:
+For clients that don't support Streamable HTTP, use the SSE endpoint instead:
 
 ```json
 {
