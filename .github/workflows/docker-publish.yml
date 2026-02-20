@@ -5,34 +5,24 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  # Allow manual trigger to add new Penpot versions
   workflow_dispatch:
     inputs:
       penpot_version:
-        description: "Penpot version to build (e.g. 2.13.3)"
-        required: false
+        description: "Penpot version to build (e.g. 2.13.3, develop)"
+        required: true
+        default: "develop"
 
 env:
   DOCKERHUB_REPO: sebathi/penpot-mcp-docker
 
 jobs:
-  build-matrix:
+  # On push to main: rebuild develop tag
+  build-on-push:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - penpot_version: "2.13.1"
-            docker_tags: "2.13.1"
-          - penpot_version: "2.13.2"
-            docker_tags: "2.13.2"
-          - penpot_version: "2.13.3"
-            docker_tags: "2.13.3,2.13,2,latest"
-          - penpot_version: "develop"
-            docker_tags: "develop"
 
     steps:
       - name: Checkout
@@ -48,32 +38,20 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Generate Docker tags
-        id: tags
-        run: |
-          TAGS=""
-          IFS=',' read -ra TAG_ARRAY <<< "${{ matrix.docker_tags }}"
-          for tag in "${TAG_ARRAY[@]}"; do
-            TAGS="${TAGS}${{ env.DOCKERHUB_REPO }}:${tag},"
-          done
-          # Remove trailing comma
-          TAGS="${TAGS%,}"
-          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push (${{ matrix.penpot_version }})
+      - name: Build and push (develop)
         uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.tags.outputs.tags }}
-          cache-from: type=gha,scope=${{ matrix.penpot_version }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.penpot_version }}
+          tags: ${{ env.DOCKERHUB_REPO }}:develop
+          cache-from: type=gha,scope=develop
+          cache-to: type=gha,mode=max,scope=develop
           build-args: |
-            PENPOT_VERSION=${{ matrix.penpot_version }}
+            PENPOT_VERSION=develop
 
-  # One-off build for manual workflow_dispatch with a custom version
-  build-custom:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.penpot_version != ''
+  # Manual trigger: build a specific version
+  build-manual:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -98,7 +76,7 @@ jobs:
           context: .
           push: true
           tags: ${{ env.DOCKERHUB_REPO }}:${{ github.event.inputs.penpot_version }}
-          cache-from: type=gha,scope=custom
-          cache-to: type=gha,mode=max,scope=custom
+          cache-from: type=gha,scope=${{ github.event.inputs.penpot_version }}
+          cache-to: type=gha,mode=max,scope=${{ github.event.inputs.penpot_version }}
           build-args: |
             PENPOT_VERSION=${{ github.event.inputs.penpot_version }}
