@@ -3,19 +3,36 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
     branches: [main]
+  # Allow manual trigger to add new Penpot versions
+  workflow_dispatch:
+    inputs:
+      penpot_version:
+        description: "Penpot version to build (e.g. 2.13.3)"
+        required: false
 
 env:
   DOCKERHUB_REPO: sebathi/penpot-mcp-docker
 
 jobs:
-  build-and-push:
+  build-matrix:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - penpot_version: "2.13.1"
+            docker_tags: "2.13.1"
+          - penpot_version: "2.13.2"
+            docker_tags: "2.13.2"
+          - penpot_version: "2.13.3"
+            docker_tags: "2.13.3,2.13,2,latest"
+          - penpot_version: "develop"
+            docker_tags: "develop"
 
     steps:
       - name: Checkout
@@ -31,26 +48,57 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKERHUB_REPO }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,prefix=
+      - name: Generate Docker tags
+        id: tags
+        run: |
+          TAGS=""
+          IFS=',' read -ra TAG_ARRAY <<< "${{ matrix.docker_tags }}"
+          for tag in "${TAG_ARRAY[@]}"; do
+            TAGS="${TAGS}${{ env.DOCKERHUB_REPO }}:${tag},"
+          done
+          # Remove trailing comma
+          TAGS="${TAGS%,}"
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push
+      - name: Build and push (${{ matrix.penpot_version }})
         uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha,scope=${{ matrix.penpot_version }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.penpot_version }}
           build-args: |
-            PENPOT_BRANCH=develop
+            PENPOT_VERSION=${{ matrix.penpot_version }}
+
+  # One-off build for manual workflow_dispatch with a custom version
+  build-custom:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.penpot_version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push (${{ github.event.inputs.penpot_version }})
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.DOCKERHUB_REPO }}:${{ github.event.inputs.penpot_version }}
+          cache-from: type=gha,scope=custom
+          cache-to: type=gha,mode=max,scope=custom
+          build-args: |
+            PENPOT_VERSION=${{ github.event.inputs.penpot_version }}

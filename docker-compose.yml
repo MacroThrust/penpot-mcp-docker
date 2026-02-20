@@ -3,7 +3,7 @@ services:
     build:
       context: .
       args:
-        PENPOT_BRANCH: ${PENPOT_BRANCH:-develop}
+        PENPOT_VERSION: ${PENPOT_VERSION:-develop}
     container_name: penpot-mcp-server
     ports:
       - "${PENPOT_MCP_SERVER_PORT:-4401}:${PENPOT_MCP_SERVER_PORT:-4401}"

@@ -43,15 +43,26 @@ docker logs penpot-mcp-server
 
 The server will be available at `http://localhost:4401/mcp`.
 
-## Using a Pre-Built Image
+## Available Tags
+
+Docker images are tagged to match Penpot release versions. MCP support was introduced in Penpot **2.13.1**.
+
+| Tag | Penpot Version | Notes |
+|-----|---------------|-------|
+| `latest`, `2`, `2.13`, `2.13.3` | 2.13.3 | Current stable release |
+| `2.13.2` | 2.13.2 | |
+| `2.13.1` | 2.13.1 | First release with MCP |
+| `develop` | develop branch | Bleeding edge, may break |
 
 ```bash
-docker run -d \
-  --name penpot-mcp-server \
-  -p 4401:4401 \
-  -p 4402:4402 \
-  -p 4403:4403 \
-  sebathi/penpot-mcp-docker:latest
+# Latest stable
+docker pull sebathi/penpot-mcp-docker:latest
+
+# Specific Penpot version
+docker pull sebathi/penpot-mcp-docker:2.13.3
+
+# Development branch
+docker pull sebathi/penpot-mcp-docker:develop
 ```
 
 ## Configuration
@@ -86,17 +97,19 @@ All configuration is via environment variables. Copy `.env.example` to `.env` an
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PENPOT_BRANCH` | `develop` | Git branch to build from (`develop` or `mcp-prod` for stable) |
+| `PENPOT_VERSION` | `develop` | Penpot release tag (`2.13.3`) or branch (`develop`, `mcp-prod`) |
 
-## Building from a Specific Branch
-
-To build from the stable release branch:
+## Building a Specific Penpot Version
 
 ```bash
-PENPOT_BRANCH=mcp-prod docker compose build
+# Build from a release tag
+PENPOT_VERSION=2.13.3 docker compose build
+
+# Build from a branch
+PENPOT_VERSION=develop docker compose build
 ```
 
-Or set it in your `.env` file before building.
+Or set `PENPOT_VERSION` in your `.env` file before building.
 
 ## Multi-User Mode
 

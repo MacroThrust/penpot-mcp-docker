@@ -7,13 +7,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git jq ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-ARG PENPOT_BRANCH=develop
+# Accepts a branch (develop, mcp-prod) or a Penpot release tag (2.13.3, 2.14.0-RC1)
+ARG PENPOT_VERSION=develop
 
 WORKDIR /build
 
 # Sparse-checkout only mcp/ (~1.2 MB instead of the full repo)
 RUN git clone --depth 1 --filter=blob:none --sparse \
-    --branch "${PENPOT_BRANCH}" \
+    --branch "${PENPOT_VERSION}" \
     https://github.com/penpot/penpot.git . \
     && git sparse-checkout set mcp
 
