@@ -19,29 +19,15 @@ The server communicates with the Penpot desktop/web app via a WebSocket bridge (
 ## How It Works
 
 ```mermaid
-graph LR
-    subgraph Your Machine
-        AI["AI Assistant\n(Claude, Cursor, etc.)"]
+flowchart LR
+    AI(["AI Assistant<br/><i>Claude · Cursor · etc.</i>"])
+    MCP["MCP Server<br/><b>Docker Container</b>"]
+    Plugin(["Penpot App<br/><i>+ MCP Plugin</i>"])
 
-        subgraph Docker
-            MCP["Penpot MCP Server\n:4401 HTTP · :4402 WS · :4403 REPL"]
-        end
-
-        subgraph Browser
-            Penpot["Penpot App\n+ MCP Plugin"]
-        end
-    end
-
-    AI -- "MCP Protocol\nHTTP :4401" --> MCP
-    MCP -- "Task Bridge\nWebSocket :4402" --> Penpot
-    Penpot -- "Results" --> MCP
-    MCP -- "Tool Response" --> AI
-
-    style Docker fill:#0d1117,stroke:#58a6ff,stroke-width:2px,color:#c9d1d9
-    style MCP fill:#161b22,stroke:#58a6ff,color:#c9d1d9
-    style AI fill:#1a1046,stroke:#a371f7,stroke-width:2px,color:#c9d1d9
-    style Penpot fill:#0c2d1e,stroke:#3fb950,stroke-width:2px,color:#c9d1d9
-    style Browser fill:#0d1117,stroke:#3fb950,stroke-width:2px,color:#c9d1d9
+    AI -- "HTTP :4401<br/>MCP Protocol" --> MCP
+    MCP -- "WebSocket :4402<br/>Task Bridge" --> Plugin
+    Plugin -. "Results" .-> MCP
+    MCP -. "Tool Response" .-> AI
 ```
 
 **Flow:**
