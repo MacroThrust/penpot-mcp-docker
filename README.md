@@ -58,7 +58,7 @@ cp .env.example .env
 docker compose up -d
 
 # Verify
-docker logs penpot-mcp-server
+docker logs mcp-server
 ```
 
 The server will be available at `http://localhost:4401/mcp`.
@@ -154,7 +154,7 @@ Pick one of the options below. The server only needs to be started once — it s
 
 ```bash
 docker run -d \
-  --name penpot-mcp-server \
+  --name mcp-server \
   -p 4401:4401 \
   -p 4402:4402 \
   -p 4403:4403 \
@@ -230,19 +230,19 @@ The Docker image is built in two stages:
 The container includes a built-in health check that verifies the HTTP server is responding:
 
 ```bash
-docker inspect --format='{{.State.Health.Status}}' penpot-mcp-server
+docker inspect --format='{{.State.Health.Status}}' mcp-server
 ```
 
 ## Logs
 
-Logs are written to a named Docker volume (`penpot-mcp-logs`) and also streamed to stdout:
+Logs are written to a named Docker volume (`mcp_logs`) and also streamed to stdout:
 
 ```bash
 # Live logs
-docker logs -f penpot-mcp-server
+docker logs -f mcp-server
 
-# Log files on the volume
-docker run --rm -v penpot-mcp_penpot-mcp-logs:/logs alpine ls /logs
+# Log files on the volume (Compose project name prefixes the volume; default project is the folder name)
+docker run --rm -v penpot-mcp-docker_mcp_logs:/logs alpine ls /logs
 ```
 
 ## License
